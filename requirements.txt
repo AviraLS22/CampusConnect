@@ -1,0 +1,12 @@
+streamlit
+langchain
+openai
+faiss-cpu
+python-dotenv
+PyPDF2
+pytesseract
+pdfminer.six
+qrcode
+pillow
+speechrecognition
+pyaudio
