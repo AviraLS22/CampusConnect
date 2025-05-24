@@ -3,7 +3,7 @@ from qa_chain import ask_question
 from speech_to_text import transcribe_audio
 from utils import generate_qr
 
-st.title("🎓 Campus Connect AI")
+st.title("🎓 SITus AI")
 st.subheader("Your Virtual College FAQ + Event Planner")
 
 query = st.text_input("Ask a question:")
