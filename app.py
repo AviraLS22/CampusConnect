@@ -5,13 +5,39 @@ from config import validate_leader
 from qa_chain import ask_question
 from speech_to_text import transcribe_audio
 from auth import sign_up, login
+from dotenv import load_dotenv
 import calendar
 import datetime
-
+import os
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.schema import Document
 
 SUPABASE_URL = "https://outnepujxzreneyifzpd.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91dG5lcHVqeHpyZW5leWlmenBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMDQ4MjQsImV4cCI6MjA2MzU4MDgyNH0.5rjTX5v4ISJiWdA2KqssQWANa2X8j9gQ9QWnMjhzJuI"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+load_dotenv()
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+VECTORSTORE_DIR = "vectorstore_index"
+embeddings = OpenAIEmbeddings()
+
+
+
+index_path = os.path.join(VECTORSTORE_DIR, "index.faiss")
+
+if os.path.exists(index_path):
+    vectorstore = FAISS.load_local(VECTORSTORE_DIR, embeddings, allow_dangerous_deserialization=True)
+else:
+    # Create an empty FAISS index with dummy doc to avoid IndexError
+    from langchain_core.documents import Document
+    dummy_doc = Document(page_content="dummy content", metadata={"source": "init"})
+    vectorstore = FAISS.from_documents([dummy_doc], embeddings)
+    vectorstore.save_local(VECTORSTORE_DIR)
+    # Delete dummy doc after saving to start clean
+    vectorstore = FAISS.load_local(VECTORSTORE_DIR, embeddings, allow_dangerous_deserialization=True)
+
+
 
 for key, default in {
     "logged_in": False,
@@ -22,7 +48,12 @@ for key, default in {
     if key not in st.session_state:
         st.session_state[key] = default
 
-
+def embed_and_store_event(name, description, event_date):
+    content = f"Event Name: {name}\nDate: {event_date}\nDescription: {description}"
+    metadata = {"name": name, "date": event_date}
+    doc = Document(page_content=content, metadata=metadata)
+    vectorstore.add_documents([doc])
+    vectorstore.save_local(VECTORSTORE_DIR)
 
 def show_login_signup():
     st.subheader("Admin Login or Signup")
@@ -83,20 +114,18 @@ def upload_event_form():
                 st.error(f"Error inserting event: {insert_resp.error.message}")
             else:
                 st.success(f"Event '{name}' added successfully!")
+                # Embed into vectorstore
+                embed_and_store_event(name, description, event_date.isoformat())
 
 def show_event_upload_section():
     st.subheader("🔐 Admin Upload Portal")
-
     if "show_upload_form" not in st.session_state:
         st.session_state.show_upload_form = False
-
     if st.button("Upload Upcoming Event"):
         st.session_state.show_upload_form = True
-
     if not st.session_state.logged_in:
         show_login_signup()
         return
-
     if st.session_state.show_upload_form:
         if not st.session_state.club_leader_validated:
             with st.form("validate_form"):
@@ -113,7 +142,6 @@ def show_event_upload_section():
             st.success("Access granted.")
             upload_event_form()
 
-
 def fetch_events():
     response = supabase.table("events").select("*").order("date", desc=False).execute()
     if hasattr(response, "error") and response.error:
@@ -126,12 +154,10 @@ def show_calendar(events):
     events_by_date = {}
     for e in events:
         events_by_date.setdefault(e["date"], []).append(e)
-
     today = datetime.date.today()
     year, month = today.year, today.month
     cal = calendar.monthcalendar(year, month)
     st.write(f"### {calendar.month_name[month]} {year}")
-
     for week in cal:
         cols = st.columns(7)
         for i, day in enumerate(week):
@@ -145,6 +171,14 @@ def show_calendar(events):
                         for event in events_by_date[date_str]:
                             st.markdown(f"- {event['name']}")
 
+def ask_event_question(query):
+    if not query:
+        return "Please ask a valid question."
+    results = vectorstore.similarity_search(query, k=2)
+    if not results:
+        return "No relevant event found."
+    return results[0].page_content
+
 def show_chatbot():
     st.header("🎓 SITus AI Chatbot")
     query = st.text_input("Ask a question:")
@@ -154,21 +188,16 @@ def show_chatbot():
             query = transcribe_audio()
     if query:
         with st.spinner("Searching..."):
-            answer = ask_question(query)
+            answer = ask_event_question(query)
             st.write("💡", answer)
 
-
-
 st.title("SITus AI 🎓")
-
-
 events = fetch_events()
 show_calendar(events)
 st.markdown("---")
 show_chatbot()
-
-
 st.markdown("---")
+
 with st.expander("🔑 Admin: Upload Upcoming Event"):
     if not st.session_state.admin_mode:
         if st.button("Enter Admin Mode"):

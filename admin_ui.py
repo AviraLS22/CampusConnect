@@ -21,4 +21,4 @@ if st.button(choice):
             st.error(result['error'])
         else:
             st.success("Logged in successfully!")
-            # You can set session or navigate to event upload UI here
+            
