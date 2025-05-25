@@ -191,16 +191,51 @@ def show_calendar(events):
     selected_date = st.date_input("Select Month", datetime.date.today())
     year, month = selected_date.year, selected_date.month
 
+    # CSS for portrait cards
+    st.markdown("""
+        <style>
+        .event-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .event-card {
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 1rem;
+            width: 200px;
+            text-align: center;
+        }
+        .event-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .event-card h4 {
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     for date_str in sorted(events_by_date):
         event_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
         if event_date.year == year and event_date.month == month:
             st.markdown(f"### 📆 {event_date.strftime('%B %d, %Y')}")
+            st.markdown("<div class='event-grid'>", unsafe_allow_html=True)
+
             for event in events_by_date[date_str]:
                 st.markdown(f"""
-                <div class='event-card'>
-                    <h4>{event['name']}</h4>
-                </div>
+                    <div class='event-card'>
+                        <img src="{event['image_url']}" alt="Event Image"/>
+                        <h4>{event['name']}</h4>
+                    </div>
                 """, unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
 def ask_event_question(query):
     if not query:
@@ -249,5 +284,38 @@ with st.expander("🔑 Admin: Upload Upcoming Event"):
             for key in ["logged_in", "user_email", "club_leader_validated", "admin_mode"]:
                 st.session_state[key] = False
             st.rerun()
+
+
+def show_feedback_form():
+    st.header("💬 Feedback Form")
+    st.markdown("We'd love to hear from you! Share your experience or suggestions.")
+
+    with st.form("feedback_form"):
+        name = st.text_input("Your Name (optional)")
+        email = st.text_input("Email (optional)")
+        message = st.text_area("Feedback", max_chars=500)
+        rating = st.slider("How would you rate your experience?", 1, 5, 3)
+        submitted = st.form_submit_button("Submit Feedback")
+
+        if submitted:
+            if not message.strip():
+                st.error("Feedback message is required.")
+                return
+
+            response = supabase.table("feedback").insert({
+                "name": name,
+                "email": email,
+                "message": message,
+                "rating": rating
+            }).execute()
+
+            if hasattr(response, "error") and response.error:
+                st.error(f"Error submitting feedback: {response.error.message}")
+            else:
+                st.success("Thanks for your feedback!")
+
+st.markdown("---")
+with st.expander("💡 Leave a Feedback"):
+    show_feedback_form()
 
 
