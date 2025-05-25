@@ -29,12 +29,12 @@ index_path = os.path.join(VECTORSTORE_DIR, "index.faiss")
 if os.path.exists(index_path):
     vectorstore = FAISS.load_local(VECTORSTORE_DIR, embeddings, allow_dangerous_deserialization=True)
 else:
-    # Create an empty FAISS index with dummy doc to avoid IndexError
+   
     from langchain_core.documents import Document
     dummy_doc = Document(page_content="dummy content", metadata={"source": "init"})
     vectorstore = FAISS.from_documents([dummy_doc], embeddings)
     vectorstore.save_local(VECTORSTORE_DIR)
-    # Delete dummy doc after saving to start clean
+   
     vectorstore = FAISS.load_local(VECTORSTORE_DIR, embeddings, allow_dangerous_deserialization=True)
 
 
@@ -114,7 +114,7 @@ def upload_event_form():
                 st.error(f"Error inserting event: {insert_resp.error.message}")
             else:
                 st.success(f"Event '{name}' added successfully!")
-                # Embed into vectorstore
+               
                 embed_and_store_event(name, description, event_date.isoformat())
 
 def show_event_upload_section():
@@ -154,8 +154,8 @@ def show_calendar(events):
     events_by_date = {}
     for e in events:
         events_by_date.setdefault(e["date"], []).append(e)
-    today = datetime.date.today()
-    year, month = today.year, today.month
+    selected_date = st.date_input("Choose Month to View", datetime.date.today())
+    year, month = selected_date.year, selected_date.month
     cal = calendar.monthcalendar(year, month)
     st.write(f"### {calendar.month_name[month]} {year}")
     for week in cal:
@@ -186,9 +186,18 @@ def show_chatbot():
     if use_voice:
         with st.spinner("Listening..."):
             query = transcribe_audio()
+
     if query:
         with st.spinner("Searching..."):
-            answer = ask_event_question(query)
+            try:
+                answer = ask_question(query)
+                if not answer or answer.strip() == "":
+                   
+                    answer = ask_event_question(query)
+            except Exception as e:
+                st.error("Error fetching answer from PDFs. Falling back to events DB.")
+                answer = ask_event_question(query)
+
             st.write("💡", answer)
 
 st.title("SITus AI 🎓")
@@ -209,3 +218,5 @@ with st.expander("🔑 Admin: Upload Upcoming Event"):
             for key in ["logged_in", "user_email", "club_leader_validated", "admin_mode"]:
                 st.session_state[key] = False
             st.rerun()
+
+

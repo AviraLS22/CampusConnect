@@ -5,7 +5,7 @@ from config import validate_leader  # import validation
 import io
 
 SUPABASE_URL = "https://outnepujxzreneyifzpd.supabase.co"
-SUPABASE_KEY = "your_supabase_key_here"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91dG5lcHVqeHpyZW5leWlmenBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMDQ4MjQsImV4cCI6MjA2MzU4MDgyNH0.5rjTX5v4ISJiWdA2KqssQWANa2X8j9gQ9QWnMjhzJuI"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def upload_image(image_file):
