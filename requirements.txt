@@ -1,12 +1,12 @@
-streamlit
-langchain
-openai
-faiss-cpu
-python-dotenv
-PyPDF2
-pytesseract
-pdfminer.six
-qrcode
-pillow
-speechrecognition
-pyaudio
+streamlit                #for building the web app
+langchain           #for handling language models and chains
+openai              #for OpenAI's language models
+faiss-cpu           #for efficient similarity search
+python-dotenv       #for environment variable management
+PyPDF2          #for PDF file handling
+pytesseract     #for OCR processing
+pdfminer.six        #for PDF text extraction
+qrcode          #for generating QR codes
+pillow          #for image processing
+speechrecognition   #for speech recognition
+pyaudio     #for audio input handling

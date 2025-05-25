@@ -149,27 +149,58 @@ def fetch_events():
         return []
     return response.data or []
 
+st.markdown(
+    """
+    <style>
+    .sit-title {
+        font-size: 48px;
+        font-weight: 700;
+        color: #f0f8ff;
+        text-align: center;
+        margin-bottom: 0.3em;
+    }
+    .sit-subtitle {
+        font-size: 20px;
+        color: #f0f8ff;
+        text-align: center;
+        margin-bottom: 2em;
+    }
+    .event-card {
+        background-color: #444;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 5px solid #4b9cd3;
+        margin-bottom: 1rem;
+    }
+    </style>
+    <div class='sit-title'>SITus AI 🎓</div>
+    <div class='sit-subtitle'>Your Smart Campus Companion – Ask Questions, View Events, Stay Updated.</div>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def show_calendar(events):
     st.header("📅 Upcoming Events Calendar")
+    st.markdown("Browse upcoming events below. Select a month to filter.")
+
     events_by_date = {}
     for e in events:
         events_by_date.setdefault(e["date"], []).append(e)
-    selected_date = st.date_input("Choose Month to View", datetime.date.today())
+
+    selected_date = st.date_input("Select Month", datetime.date.today())
     year, month = selected_date.year, selected_date.month
-    cal = calendar.monthcalendar(year, month)
-    st.write(f"### {calendar.month_name[month]} {year}")
-    for week in cal:
-        cols = st.columns(7)
-        for i, day in enumerate(week):
-            with cols[i]:
-                if day == 0:
-                    st.write("")
-                else:
-                    date_str = f"{year}-{month:02d}-{day:02d}"
-                    st.markdown(f"**{day}**")
-                    if date_str in events_by_date:
-                        for event in events_by_date[date_str]:
-                            st.markdown(f"- {event['name']}")
+
+    for date_str in sorted(events_by_date):
+        event_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        if event_date.year == year and event_date.month == month:
+            st.markdown(f"### 📆 {event_date.strftime('%B %d, %Y')}")
+            for event in events_by_date[date_str]:
+                st.markdown(f"""
+                <div class='event-card'>
+                    <h4>{event['name']}</h4>
+                </div>
+                """, unsafe_allow_html=True)
 
 def ask_event_question(query):
     if not query:
@@ -200,7 +231,7 @@ def show_chatbot():
 
             st.write("💡", answer)
 
-st.title("SITus AI 🎓")
+
 events = fetch_events()
 show_calendar(events)
 st.markdown("---")

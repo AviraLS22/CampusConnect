@@ -1,7 +1,7 @@
 import streamlit as st
 from supabase import create_client, Client
 from datetime import date
-from config import validate_leader  # import validation
+from config import validate_leader  
 import io
 
 SUPABASE_URL = "https://outnepujxzreneyifzpd.supabase.co"
